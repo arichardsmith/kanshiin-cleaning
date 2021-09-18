@@ -5,7 +5,7 @@ SHEET_ID <- "Add your sheet ID here"
 #' Run script
 main <- function () {
   old_data <-
-    read_kanshiin_wx_data(Sys.glob(here::here("raw-data/-2017/*.xlsx")), read_kanshiin_wx_file)
+    read_kanshiin_wx_data(Sys.glob(here::here("raw-data/2004-2017/*.xlsx")), read_kanshiin_wx_file)
   
   new_data <- read_kanshiin_wx_data(Sys.glob(here::here("raw-data/2017-2020/*.xlsx")), read_new_kanshiin_wx_file)
   
