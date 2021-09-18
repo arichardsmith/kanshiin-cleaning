@@ -1,0 +1,10 @@
+install.packages(
+  c(
+    "tidyverse",
+    "here",
+    "googlesheets4",
+    "readxl",
+    "fillr",
+    "lubridate"
+  )
+)
