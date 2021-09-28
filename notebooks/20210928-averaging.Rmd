@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 
 # Average temperatures
 
-There's two ways we can make a plot comparing the current year to average years. The first way is quick and easy, but the second way lets us make an average year dataframe, which we can add to googlesheets or save as a csv to use again. I'll show you both.
+There's two ways we can make a plot comparing the current year to average years. The first way is to make an average dataframe with the old data, then combine it with the current years data. The second is quick and easy if your data is all in one dataframe.
 
 ## Loading the data
 
@@ -91,7 +91,7 @@ ggplot(avg_df, aes(day, temp)) +
 
 `mean()` will return `NA` if even one of the values is `NA`. This means that missing data introduces lots of `NA`'s into our data. There are a few ways to deal with this but no way is perfect.
 
-While it's not very statistically good. For the sake of making a quick graph, the easiest way to deal with this is to tell it to ignore `NA` values with `mean(x, na.rm = TRUE)`
+While it's not statistically correct. For the sake of making a quick graph, the easiest way to deal with this is to tell it to ignore `NA` values with `mean(x, na.rm = TRUE)`
 
 ```{r fixed-average, fig.width=10, fig.height=6}
 avg_df <- past_df %>% 
@@ -103,6 +103,7 @@ avg_df <- past_df %>%
 ggplot(avg_df, aes(day, temp)) +
   geom_line(aes(color = factor(hour)))
 ```
+At this point you could upload the average data to googlesheets, or save it as a csv.
 
 ## Joining with this years data
 

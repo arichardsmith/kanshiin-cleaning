@@ -1,9 +1,9 @@
 # Average temperatures
 
 There’s two ways we can make a plot comparing the current year to
-average years. The first way is quick and easy, but the second way lets
-us make an average year dataframe, which we can add to googlesheets or
-save as a csv to use again. I’ll show you both.
+average years. The first way is to make an average dataframe with the
+old data, then combine it with the current years data. The second is
+quick and easy if your data is all in one dataframe.
 
 ## Loading the data
 
@@ -83,7 +83,7 @@ past years data to calculate the average temperature per day and hour.
 that missing data introduces lots of `NA`’s into our data. There are a
 few ways to deal with this but no way is perfect.
 
-While it’s not very statistically good. For the sake of making a quick
+While it’s not statistically correct. For the sake of making a quick
 graph, the easiest way to deal with this is to tell it to ignore `NA`
 values with `mean(x, na.rm = TRUE)`
 
@@ -97,6 +97,8 @@ values with `mean(x, na.rm = TRUE)`
       geom_line(aes(color = factor(hour)))
 
 ![](20210928-averaging_files/figure-markdown_strict/fixed-average-1.png)
+At this point you could upload the average data to googlesheets, or save
+it as a csv.
 
 ## Joining with this years data
 
