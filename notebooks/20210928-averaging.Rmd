@@ -23,7 +23,7 @@ library(googlesheets4)
 Next we load the data from google sheets. I won't save the sheet id on Github, so you need to run `SHEET_ID <- "<google sheet id>"` in the console first.
 
 ```{r, echo=FALSE}
-SHEET_ID <- "1ZvcBcDfdBq736XYis2Q1GB_SN_6MRm0OSRTfdbrfcmE"
+SHEET_ID <- ""
 ```
 
 ```{r loading}
@@ -78,7 +78,7 @@ kotoshi_df <- read_sheet(SHEET_ID, "2021") %>%
 
 Now we have two dataframes, this year and the past years. We use the past years data to calculate the average temperature per day and hour.
 
-```{r avg-graph, fig.width=4, fig.height=3}
+```{r avg-graph, fig.width=10, fig.height=6}
 avg_df <- past_df %>% 
   mutate(day = yday(date)) %>% 
   filter(hour == 10 | hour == 13 | hour == 16) %>% # Remove the old times
@@ -93,7 +93,7 @@ ggplot(avg_df, aes(day, temp)) +
 
 While it's not very statistically good. For the sake of making a quick graph, the easiest way to deal with this is to tell it to ignore `NA` values with `mean(x, na.rm = TRUE)`
 
-```{r fixed-average, fig.width=4, fig.height=3}
+```{r fixed-average, fig.width=10, fig.height=6}
 avg_df <- past_df %>% 
   mutate(day = yday(date)) %>% 
   filter(hour == 10 | hour == 13 | hour == 16) %>% # Remove the old times
@@ -116,7 +116,7 @@ final_df <- kotoshi_df %>%
 
 I'll let you work out how to plot it ;-)
 
-```{r final-graph, echo=FALSE, fig.width=4, fig.height=3}
+```{r final-graph, echo=FALSE, fig.width=10, fig.height=6}
 final_df %>% 
   filter(hour == 13) %>% 
   drop_na() %>% 
@@ -138,7 +138,7 @@ final_df %>%
 
 If we had all of the data in one dataframe, there is a quicker way to do this using factors and forcats.
 
-```{r bonus, fig.width=4, fig.height=3}
+```{r bonus, fig.width=10, fig.height=6}
 past_df %>% 
   filter(hour == 13) %>% 
   mutate(
