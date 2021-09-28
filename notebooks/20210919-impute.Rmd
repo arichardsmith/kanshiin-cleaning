@@ -1,0 +1,150 @@
+# Imputing missing data
+
+We can estimate missing temperature data using temperature data from the AMEDAS station at Shibininai.
+
+## Packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(googlesheets4)
+```
+
+To read the AMEDAS data we use [`ramedas`](https://github.com/arichardsmith/ramedas), which needs to installed from github using `devtools`
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("tidyverse/readxl")
+```
+
+```{r}
+library(ramedas)
+```
+
+## Data
+
+Pull the existing data from googlesheets
+
+```{r}
+SHEET_ID <- "1ZvcBcDfdBq736XYis2Q1GB_SN_6MRm0OSRTfdbrfcmE"
+
+asahidake_df <- tibble(year = 2004:2020 %>% as.character()) %>% 
+  mutate(data = map(year, ~read_sheet(SHEET_ID, .x) %>% select(timestamp, temp))) %>% 
+  unnest(data) %>% 
+  select(-year) %>% 
+  rename(asahidake_temp = temp)
+```
+
+Load the Shibinai data from the csvs
+
+```{r}
+shibi_df_raw <- tibble(file = Sys.glob(here::here("raw-data/amedas/shibinai*"))) %>% 
+  mutate(data = map(file, ~read_amedas_csv(.x))) %>% 
+  unnest(data) %>% 
+  mutate(年月日時 = ymd_hms(年月日時))
+```
+
+Check the 品質情報 over time
+
+```{r}
+visualize_quality_over_time(shibi_df_raw) +
+  theme(text=element_text(family="HiraKakuProN-W3"))
+```
+
+Looks like most of the data is there.
+
+```{r}
+shibi_df <- pivot_measurements(shibi_df_raw, min_quality = 8) %>% 
+  select(timestamp = 年月日時, shibi_temp = `気温(℃)`)
+```
+
+We also need to interpolate 9:30 temps for 2011 -> 2012
+
+```{r}
+asahidake_df %>% filter(minute(timestamp) != 0)
+```
+
+```{r}
+shibi_offset_df <- shibi_df %>% 
+  filter(year(timestamp) == 2011 | year(timestamp) == 2012, hour(timestamp) == 9 | hour(timestamp) == 10) %>% 
+  mutate(date = date(timestamp)) %>% 
+  group_by(date) %>% 
+  summarise(shibi_temp = sum(shibi_temp) / 2) %>% 
+  mutate(timestamp = update(date, hour = 9, minute = 30)) %>% 
+  select(-date)
+```
+
+```{r}
+shibi_complete_df <-
+  bind_rows(shibi_df, shibi_offset_df) %>% arrange(timestamp)
+```
+
+Now we just need to join the dataframes
+
+```{r}
+src_df <- asahidake_df %>%
+  mutate(timestamp = if_else(minute(timestamp) != 0, update(timestamp, minute = 30), timestamp)) %>% # Make the merge work
+  left_join(shibi_complete_df, by = "timestamp")
+```
+
+```{r}
+complete_df <- drop_na(src_df)
+```
+
+## Estimating the Ashidake temp using linear regression
+
+```{r}
+r_val <- round(cor(complete_df$shibi_temp, complete_df$asahidake_temp), 2)
+
+ggplot(complete_df, aes(shibi_temp, asahidake_temp)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title=glue::glue("Correlation between Shibinai temp and Asahidake temp (R = {r_val})"), x = "Shibinai temp", y = "Asahidake temp")
+```
+
+It's not perfect, especially at colder temperatures. If we had relative humidity data we could maybe get a better result, but there are no RH measurements.
+
+To create, then check our model, we split the data into test and train sets.
+
+```{r}
+test_df <- complete_df %>% sample_frac(0.2)
+train_df <- anti_join(complete_df, test_df, by = "timestamp")
+```
+
+Then we run a simple linear regression on the train set
+
+```{r}
+m <- lm(asahidake_temp ~ shibi_temp, data = train_df)
+summary(m)
+```
+
+So Asahidake is roughly -7.8°C  when Shibininai is 0°C and 9.4°C when Shibinai is 20°C. $asahi = 0.87 \times shibi - 7.8$
+
+### Testing the model on the test set
+```{r}
+test_res <- test_df %>% 
+  mutate(y_hat = predict(m, .)) %>% 
+  mutate(resid = asahidake_temp - y_hat)
+
+test_res %>% 
+  ggplot(aes(shibi_temp)) +
+  geom_point(aes(y = asahidake_temp)) +
+  geom_line(aes(y = y_hat), color = "red") +
+  labs(title = "Model performance", subtile = "Points = real values, Line = model values", x = "Shibinai", y = "Asahidake")
+
+test_res %>% 
+  ggplot(aes(shibi_temp, resid)) +
+  geom_point() +
+  labs(title = "Prediction residuals", x = "Shibinai temp", y = "Residual")
+
+test_res %>% 
+  ggplot(aes(resid)) +
+  geom_density()
+```
+
+```{r}
+mean(abs(test_res$resid))
+```
+
+```{r}
+ggplot(test_res)
+```
