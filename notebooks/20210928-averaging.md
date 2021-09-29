@@ -17,13 +17,6 @@ Next we load the data from google sheets. I won’t save the sheet id on
 Github, so you need to run `SHEET_ID <- "<google sheet id>"` in the
 console first.
 
-    past_df <- tibble(year = 2015:2020 %>% as.character()) %>% 
-      mutate(data = map(year, ~read_sheet(SHEET_ID, .x))) %>% 
-      unnest(data) %>% 
-      select(date, hour, temp)
-
-This years data is a bit harder to load…
-
     #' Make sure all the column names are the same. Note: this will break if columns are reordered
     rename_columns <- function (df) {
       colnames(df) <-
@@ -42,24 +35,18 @@ This years data is a bit harder to load…
       return(df)
     }
 
-    #' Convert text to a number
-    get_number <- function (x) {
-      if (!str_detect(x, "\\d")) {
-        # No number characters
-        return (NA_real_)
-      }
-      
-      fmtd <- str_remove(x, "[^\\d-\\.]")
-      
-      return (as.numeric(fmtd))
-    }
+    past_df <- tibble(year = 2015:2020 %>% as.character()) %>% 
+      mutate(data = map(year, ~read_sheet(SHEET_ID, .x))) %>% 
+      unnest(data) %>%
+      select(-year) %>% 
+      rename_columns() %>%
+      select(date, hour, temp)
+
+Then read this years data into a separate dataframe:
 
     kotoshi_df <- read_sheet(SHEET_ID, "2021") %>% 
       rename_columns() %>% 
-      select(date, hour, temp) %>% 
-      mutate(
-        temp = map_dbl(temp, get_number), # Temp has non-numeric input ("--" etc)
-      )
+      select(date, hour, temp)
 
 ## Averaging the data
 
